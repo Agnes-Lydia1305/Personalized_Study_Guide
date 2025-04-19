@@ -1,5 +1,6 @@
 streamlit
 google-genai==1.7.0
+google-api-core
 PyPDF2
 faiss-cpu
 sentence-transformers
