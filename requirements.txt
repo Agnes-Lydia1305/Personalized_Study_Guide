@@ -3,6 +3,7 @@ google-genai==1.7.0
 google-api-core
 PyPDF2
 faiss-cpu
+nest_asyncio
 sentence-transformers
 torch
 torchvision
