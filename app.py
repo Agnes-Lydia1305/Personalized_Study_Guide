@@ -9,12 +9,14 @@ from sentence_transformers import SentenceTransformer
 from google import genai
 from google.genai import types
 from google.api_core import retry
+import json
+from datetime import datetime
 
-# Gemini Retry Setup
+# Setup Gemini Retry
 is_retriable = lambda e: (isinstance(e, genai.errors.APIError) and e.code in {429, 503})
 genai.models.Models.generate_content = retry.Retry(predicate=is_retriable)(genai.models.Models.generate_content)
 
-# Load API Key (replace with your key or use secrets manager)
+# Load Google API Key from Streamlit Secrets
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 client = genai.Client(api_key=GOOGLE_API_KEY)
 
@@ -25,7 +27,7 @@ def load_pdf_chunks(uploaded_file, chunk_size=500):
     chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
     return chunks
 
-# Embedding + FAISS
+# Embedding and Indexing
 def embed_chunks(chunks):
     model = SentenceTransformer("all-MiniLM-L6-v2")
     embeddings = model.encode(chunks, convert_to_numpy=True)
@@ -33,7 +35,7 @@ def embed_chunks(chunks):
     index.add(embeddings)
     return model, embeddings, index
 
-# Query Study Guide
+# RAG + Prompt
 def query_study_guide(topic, chunks, model, index, k=4):
     topic_embedding = model.encode([topic])[0]
     distances, indices = index.search(np.array([topic_embedding]), k)
@@ -60,10 +62,10 @@ Format the output in JSON like this:
     )
     return response.text
 
-# Streamlit UI
+# Streamlit App UI
 st.set_page_config(page_title="AI Study Guide Generator", layout="centered")
-
-st.title("📚 Personalized Study Guide Generator (Rust Book Demo)")
+st.title("📘 Personalized Study Guide Generator")
+st.markdown("Powered by Google Gemini + FAISS")
 
 uploaded_pdf = st.file_uploader("📄 Upload a PDF (e.g., Rust Book)", type=["pdf"])
 
@@ -73,10 +75,30 @@ if uploaded_pdf:
         model, embeddings, index = embed_chunks(chunks)
         st.success("✅ PDF processed and indexed!")
 
-    topic = st.text_input("🧠 Enter a topic/question to generate a study guide:")
+    topic = st.text_input("💡 Enter a topic from the document:")
 
     if topic:
-        with st.spinner("🤖 Generating personalized study guide..."):
+        with st.spinner("📚 Generating study guide..."):
             output = query_study_guide(topic, chunks, model, index)
+
+            # Display output
             st.markdown("### 📌 Study Guide Output")
-            st.code(output, language="json")
+            try:
+                output_json = json.loads(output)
+                st.json(output_json)
+                # Prepare file content
+                output_str = json.dumps(output_json, indent=2)
+                filename = f"study_guide_{topic.lower().replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            except json.JSONDecodeError:
+                st.warning("⚠️ Output is not valid JSON. Showing raw text.")
+                output_str = output
+                filename = f"study_guide_{topic.lower().replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+                st.text(output)
+
+            # Download Button
+            st.download_button(
+                label="⬇️ Download Study Guide",
+                data=output_str,
+                file_name=filename,
+                mime="application/json" if filename.endswith(".json") else "text/plain"
+            )
