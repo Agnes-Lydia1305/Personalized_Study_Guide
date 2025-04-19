@@ -63,9 +63,9 @@ Format the output in JSON like this:
 # Streamlit UI
 st.set_page_config(page_title="AI Study Guide Generator", layout="centered")
 
-st.title("📚 Personalized Study Guide Generator (Rust Book Demo)")
+st.title("📚 Personalized Study Guide Generator")
 
-uploaded_pdf = st.file_uploader("📄 Upload a PDF (e.g., Rust Book)", type=["pdf"])
+uploaded_pdf = st.file_uploader("📄 Upload a PDF (e.g., Any textbook like Rust Programming)", type=["pdf"])
 
 if uploaded_pdf:
     with st.spinner("🔍 Processing PDF..."):
