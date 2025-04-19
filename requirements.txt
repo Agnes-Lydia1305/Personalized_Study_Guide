@@ -1,0 +1,6 @@
+streamlit
+google-genai==1.7.0
+PyPDF2
+faiss-cpu
+sentence-transformers
+google-api-core
